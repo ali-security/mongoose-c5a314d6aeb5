@@ -1,17 +1,6 @@
 name: Typescript Types
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/types.yml'
-      - 'package.json'
-      - 'types/**'
-      - 'test/types/**'
-  push:
-    paths:
-      - '.github/workflows/types.yml'
-      - 'package.json'
-      - 'types/**'
-      - 'test/types/**'
+  workflow_dispatch:
 permissions:
   contents: read
 

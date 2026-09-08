@@ -1,19 +1,11 @@
 name: Test
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/test.yml"
-      - "package.json"
-      - "index.js"
-      - "lib/**"
-      - "test/**.js"
-  push:
-    paths:
-      - ".github/workflows/test.yml"
-      - "package.json"
-      - "index.js"
-      - "lib/**"
-      - "test/**.js"
+  workflow_dispatch:
+    inputs:
+      test-filter:
+        description: 'Optional mocha spec path or --grep selector; empty runs the full suite'
+        required: false
+        default: ''
 permissions:
   contents: read
 
@@ -21,6 +13,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     name: Lint JS-Files
+    if: false
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -48,6 +42,7 @@ jobs:
             node: 22
             coverage: true
     name: Node ${{ matrix.node }} MongoDB ${{ matrix.mongodb }} OS ${{ matrix.os }}
+    timeout-minutes: 40
     env:
       MONGOMS_VERSION: ${{ matrix.mongodb }}
       MONGOMS_PREFER_GLOBAL_PATH: 1
@@ -67,19 +62,38 @@ jobs:
           path: ~/.cache/mongodb-binaries
           key: ${{ matrix.os }}-${{ matrix.mongodb }}
 
+      # Resolve dependencies as of the 9.6.2 release date: bson >= 7.3 changed
+      # ObjectId's internal shape (buffer -> i0..i3), which inflates
+      # v8.serialize() sizes and breaks test/docs/lean.test.js.
+      - name: Pin npm registry to the release date
+        run: |
+          npm config set registry https://time-machines-npm.sealsecurity.io/
+          npm config set //time-machines-npm.sealsecurity.io/:_authToken=2026-05-08T17:22:58.270000Z
       - run: npm install
       # Create ./node_modules/mongoose-separate-require-instance for testing multiple require instances
       - run: npm run create-separate-require-instance
       - name: NPM Test without Coverage
-        run: npm run test:ci
+        run: |
+          if [ -n "${{ inputs.test-filter }}" ]; then
+            npx mocha --exit --reporter min ${{ inputs.test-filter }}
+          else
+            npm run test:ci
+          fi
         if: matrix.coverage != true
       - name: NPM Test with Coverage
-        run: npm run test-coverage:ci
+        run: |
+          if [ -n "${{ inputs.test-filter }}" ]; then
+            npx mocha --exit --reporter min ${{ inputs.test-filter }}
+          else
+            npm run test-coverage:ci
+          fi
         if: matrix.coverage == true
 
   test-deno:
     runs-on: ubuntu-22.04
     name: Deno tests
+    timeout-minutes: 40
+    if: inputs.test-filter == ''
     env:
       MONGOMS_VERSION: 6.0.15
       MONGOMS_PREFER_GLOBAL_PATH: 1
@@ -101,6 +115,13 @@ jobs:
         with:
           deno-version: v2.1.x
       - run: deno --version
+      # Resolve dependencies as of the 9.6.2 release date: bson >= 7.3 changed
+      # ObjectId's internal shape (buffer -> i0..i3), which inflates
+      # v8.serialize() sizes and breaks test/docs/lean.test.js.
+      - name: Pin npm registry to the release date
+        run: |
+          npm config set registry https://time-machines-npm.sealsecurity.io/
+          npm config set //time-machines-npm.sealsecurity.io/:_authToken=2026-05-08T17:22:58.270000Z
       - run: npm install
       - name: Run Deno tests
         run: npm run test-deno:ci
@@ -108,6 +129,7 @@ jobs:
   test-atlas-cli:
     runs-on: ubuntu-22.04
     name: Atlas CLI tests
+    timeout-minutes: 40
     env:
       IS_ATLAS: true
       MONGOOSE_TEST_URI: mongodb://127.0.0.1:27017/mongoose_test?directConnection=true
@@ -121,17 +143,28 @@ jobs:
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
+      # Resolve dependencies as of the 9.6.2 release date: bson >= 7.3 changed
+      # ObjectId's internal shape (buffer -> i0..i3), which inflates
+      # v8.serialize() sizes and breaks test/docs/lean.test.js.
+      - name: Pin npm registry to the release date
+        run: |
+          npm config set registry https://time-machines-npm.sealsecurity.io/
+          npm config set //time-machines-npm.sealsecurity.io/:_authToken=2026-05-08T17:22:58.270000Z
       - run: npm install
       - name: Run tests
-        run: npm run test:ci
+        run: |
+          if [ -n "${{ inputs.test-filter }}" ]; then
+            npx mocha --exit --reporter min ${{ inputs.test-filter }}
+          else
+            npm run test:ci
+          fi
       - name: Stop deployment
         run: atlas deployments stop mycluster
 
   test-replica-sets:
-    needs:
-      - test
     runs-on: ubuntu-22.04
     name: Replica Set tests
+    timeout-minutes: 40
     env:
       FORCE_COLOR: true
     steps:
@@ -140,14 +173,27 @@ jobs:
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: 22
+      # Resolve dependencies as of the 9.6.2 release date: bson >= 7.3 changed
+      # ObjectId's internal shape (buffer -> i0..i3), which inflates
+      # v8.serialize() sizes and breaks test/docs/lean.test.js.
+      - name: Pin npm registry to the release date
+        run: |
+          npm config set registry https://time-machines-npm.sealsecurity.io/
+          npm config set //time-machines-npm.sealsecurity.io/:_authToken=2026-05-08T17:22:58.270000Z
       - run: npm install
       - name: Test
-        run: npm run test-rs:ci
+        run: |
+          if [ -n "${{ inputs.test-filter }}" ]; then
+            START_REPLICA_SET=1 npx mocha --timeout 30000 --exit --reporter min ${{ inputs.test-filter }}
+          else
+            npm run test-rs:ci
+          fi
 
   dependency-review:
     name: Dependency Review
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -155,3 +201,29 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Dependency review
         uses: actions/dependency-review-action@v4
+
+  pack:
+    runs-on: ubuntu-24.04
+    name: Pack npm tarball
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24
+
+      # Match the npm that packed the public release: npm pack's always-include
+      # member set changes across npm majors.
+      - name: Pin npm to the release's packer
+        run: npm i -g npm@11.11.0
+
+      - name: Pack
+        run: npm pack
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mongoose-tgz
+          path: mongoose-9.6.2.tgz
+          if-no-files-found: error

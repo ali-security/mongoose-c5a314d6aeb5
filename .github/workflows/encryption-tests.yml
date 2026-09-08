@@ -1,22 +1,6 @@
 name: Encryption Tests
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/encryption-tests.yml"
-      - "package.json"
-      - "index.js"
-      - "lib/**"
-      - "test/encryption/**.js"
-      - "scripts/setup-encryption-tests.js"
-  push:
-    paths:
-      - ".github/workflows/encryption-tests.yml"
-      - "package.json"
-      - "index.js"
-      - "lib/**"
-      - "test/encryption/**.js"
-      - "scripts/setup-encryption-tests.js"
   workflow_dispatch: {}
 
 permissions:

@@ -1,9 +1,6 @@
 name: Tidelift Alignment
 on:
-  push:
-    paths:
-      - '.github/workflows/tidelift-alignment.yml'
-      - 'package.json'
+  workflow_dispatch:
 
 permissions:
   contents: read

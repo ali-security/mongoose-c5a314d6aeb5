@@ -1,29 +1,6 @@
 name: Documentation
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/documentation.yml'
-      - 'package.json'
-      - 'docs/**'
-      - 'lib'
-      - 'test'
-      - 'scripts/website.js'
-      - 'CHANGELOG.md'
-      - 'CONTRIBUTING.md'
-      - 'index.pug'
-  push:
-    branches:
-      - master
-    paths:
-      - '.github/workflows/documentation.yml'
-      - 'package.json'
-      - 'docs/**'
-      - 'lib'
-      - 'test'
-      - 'scripts/website.js'
-      - 'CHANGELOG.md'
-      - 'CONTRIBUTING.md'
-      - 'index.pug'
+  workflow_dispatch:
 permissions:
   contents: read
 

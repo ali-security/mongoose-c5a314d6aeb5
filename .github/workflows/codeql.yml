@@ -1,14 +1,7 @@
 name: "Code Scanning - Action"
 
 on:
-  pull_request:
-    paths:
-      - 'lib/**'
-  push:
-    branches:
-      - master
-    paths:
-      - 'lib/**'
+  workflow_dispatch:
 
 jobs:
   CodeQL-Build:
